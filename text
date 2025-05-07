@@ -1,0 +1,198 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import string
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+
+# Download necessary NLTK data
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Load the dataset (use the correct path to the file)
+df = pd.read_csv(r"C:\Users\KIRAN\Downloads\amazon_alexa.tsv", sep='\t')
+df
+
+# Task I: Plot Positive and Negative Feedback
+feedback_counts = df['feedback'].value_counts().sort_index()  # Assumes feedback is 1 or 0
+labels = ['Negative (0)', 'Positive (1)']
+plt.bar(labels, feedback_counts, color=['red', 'green'])
+plt.title('Positive vs Negative Feedback')
+plt.xlabel('Feedback Type')
+plt.ylabel('Count')
+plt.show()
+
+# Task II: Convert review text into lowercase
+df['lowercase_review'] = df['verified_reviews'].apply(lambda x: x.lower() if isinstance(x, str) else "")
+
+# Task III: Remove all punctuations from review text
+df['no_punctuation_review'] = df['lowercase_review'].apply(lambda x: x.translate(str.maketrans('', '', string.punctuation)))
+
+# Task IV: Remove emoticons and emojis from the text
+emoji_pattern = re.compile("[\U00010000-\U0010ffff\U00002600-\U000026FF\U00002700-\U000027BF]+", flags=re.UNICODE)
+df['cleaned_review'] = df['no_punctuation_review'].apply(lambda x: emoji_pattern.sub(r'', x))
+
+# Task V: Tokenize the review text into words
+df['tokens'] = df['cleaned_review'].apply(lambda x: word_tokenize(x))
+
+# Task VI: Remove stopwords from the tokenized text
+stop_words = set(stopwords.words('english'))
+df['tokens_no_stopwords'] = df['tokens'].apply(lambda tokens: [word for word in tokens if word not in stop_words])
+
+# Displaying Sample Output
+print("Sample Cleaned Reviews and Tokenized Text:")
+print(df[['verified_reviews', 'tokens_no_stopwords']].head())
+
+# Optional: Save to new CSV with cleaned data
+df.to_csv('cleaned_amazon_alexa_reviews.csv', index=False)
+
+
+
+
+
+or
+
+import pandas as pd
+import numpy as np
+import re
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
+# Download NLTK data files (run once)
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Load dataset
+df = pd.read_csv(r"C:\Users\KIRAN\Downloads\amazon_alexa.tsv", sep='\t')
+
+# Make sure there are no NaNs in the review column
+df['verified_reviews'] = df['verified_reviews'].fillna('')
+
+# 1) Remove punctuation directly with a lambda
+df['cleaned_review'] = df['verified_reviews'] \
+    .apply(lambda x: re.sub(r'[^\w\s]', '', x))
+
+# 2) Tokenize
+df['tokens'] = df['cleaned_review'].apply(word_tokenize)
+
+# 3) Remove stopwords inline
+stop_words = set(stopwords.words('english'))
+df['tokens_no_stopwords'] = df['tokens'] \
+    .apply(lambda toks: [w for w in toks if w.lower() not in stop_words])
+
+# 4) Stem + lemmatize in one go
+stemmer     = PorterStemmer()
+lemmatizer  = WordNetLemmatizer()
+df['final_tokens'] = df['tokens_no_stopwords'] \
+    .apply(lambda toks: [lemmatizer.lemmatize(stemmer.stem(w)) for w in toks])
+
+# 5) Re-join tokens into a single "cleaned" text string
+df['final_text'] = df['final_tokens'].apply(lambda toks: ' '.join(toks))
+
+# 6) Bag-of-Words (CountVectorizer)
+bow_vec    = CountVectorizer()
+bow_matrix = bow_vec.fit_transform(df['final_text'])
+
+# 7) TF-IDF
+tfidf_vec    = TfidfVectorizer()
+tfidf_matrix = tfidf_vec.fit_transform(df['final_text'])
+
+# (Optional) Convert to DataFrame for inspection
+bow_df   = pd.DataFrame(bow_matrix.toarray(), columns=bow_vec.get_feature_names_out())
+tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf_vec.get_feature_names_out())
+
+# Show samples
+print("BoW sample:\n", bow_df.head())
+print("\nTF-IDF sample:\n", tfidf_df.head())
+
+
+or
+
+import nltk
+import string
+from nltk import pos_tag
+from collections import Counter
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+!pip install wordcloud matplotlib
+!pip install scikit-learn
+
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger_eng')
+
+
+doc = "The boys were playing marbels. The girls were like to playing Tennis."
+
+
+tokens = word_tokenize(doc)
+print("Token:", tokens) 
+
+
+pos_tags = pos_tag(tokens)
+print("POS Tags:", pos_tags)
+
+stop_words = set(stopwords.words('english'))
+filtered_tokens = [word for word in tokens if word.lower() not in string.punctuation]
+print("filtered Tokens:", filtered_tokens)
+
+tokens = [word for word in tokens if word not in string.punctuation]
+print("Tokens after removing Punctuation:", filtered_tokens)
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+docs = [
+    "The boys enjoyed playing marbles, while the girls preferred tennis, showing their different interests in games.","Word clouds visually highlight key terms like 'playing,' 'boys,' 'girls,' 'marbles,' and 'tennis' from the given text.","To clean text data for analysis, removing stopwords (e.g., 'the,' 'were') and punctuation improves focus on meaningful words."]
+
+# Initialize and fit TF-IDF
+vectorizer = TfidfVectorizer(use_idf=True)
+X = vectorizer.fit_transform(docs)
+
+# Get feature names and IDF values
+feature_names = vectorizer.get_feature_names_out()
+idf_scores = vectorizer.idf_
+
+# Create dictionary of terms and their IDF scores
+idf_values = dict(zip(feature_names, idf_scores))
+
+print("Inverse Document Frequency (IDF):")
+for word, idf in sorted(idf_values.items(), key=lambda x: x[1], reverse=True):
+    print(f"{word}: {idf:.3f}")
+
+
+stemmer = PorterStemmer()
+stemmed_words = [stemmer.stem(word) for word in tokens]
+
+print("Original Tokens:", filtered_tokens)
+print("Stemmed Tokens:", stemmed_words)
+
+
+lemmatizer = WordNetLemmatizer()
+lemmatized_words = [lemmatizer.lemmatize(word) for word in tokens]
+
+print("Original Tokens:", filtered_tokens)
+print("Lemmatized Tokens:", lemmatized_words)
+
+
+tf = Counter(tokens)
+print("term Frequency (TF):")
+for word,freq in tf.items():
+    print(f"{word}: {freq}")
+
+
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+wordcloud = WordCloud(width=400, height=200, background_color='white').generate(doc)
+
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.show()
