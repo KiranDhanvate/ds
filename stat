@@ -1,0 +1,128 @@
+#2. Summary Statistics Without Library Functions
+manual_summary = {}
+for col in numeric_df.columns:
+    values = numeric_df[col].values
+    n = len(values)
+    sorted_vals = np.sort(values)
+    mean = sum(values) / n
+    median = sorted_vals[n//2] if n % 2 != 0 else (sorted_vals[n//2 - 1] + sorted_vals[n//2]) / 2
+    min_val = sorted_vals[0]
+    max_val = sorted_vals[-1]
+    std_dev = (sum((x - mean) ** 2 for x in values) / (n - 1)) ** 0.5
+    manual_summary[col] = [mean, median, min_val, max_val, std_dev]
+
+summary_without_lib = pd.DataFrame(manual_summary, index=['Mean', 'Median', 'Min', 'Max', 'Std']).T
+print("\nSummary without libraries:\n", summary_without_lib)
+
+
+
+
+# 3. Grouped Summary of Income by Age Group
+bins = [17, 25, 35, 45, 55, 65, 90]
+labels = ['18-25', '26-35', '36-45', '46-55', '56-65', '66+']
+df['age_group'] = pd.cut(df['age'], bins=bins, labels=labels)
+
+income_by_age_group = df.groupby(['age_group', 'income']).size().unstack(fill_value=0)
+print("\nIncome distribution by age group:\n", income_by_age_group)
+
+
+
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the Iris dataset from the UCI repository
+url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
+
+# Define column names for the dataset
+columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'species']
+
+# Read the dataset into a pandas DataFrame
+iris = pd.read_csv(url, names=columns)
+
+# Show the first few rows of the dataset to get an overview
+print("First few rows of the dataset:")
+print(iris.head())
+
+# Separate the dataset into individual species (Iris-setosa, Iris-versicolor, Iris-virginica)
+setosa = iris[iris['species'] == 'Iris-setosa']
+versicolor = iris[iris['species'] == 'Iris-versicolor']
+virginica = iris[iris['species'] == 'Iris-virginica']
+
+# 1. Calculate basic statistical details for each species
+# Use the 'describe' function to get statistics like count, mean, std, min, max, and percentiles (25%, 50%, 75%)
+setosa_stats = setosa.describe()
+versicolor_stats = versicolor.describe()
+virginica_stats = virginica.describe()
+
+# Display the statistical details for each species
+print("\nStatistical details for Iris-setosa:")
+print(setosa_stats)
+
+print("\nStatistical details for Iris-versicolor:")
+print(versicolor_stats)
+
+print("\nStatistical details for Iris-virginica:")
+print(virginica_stats)
+
+# 2. Calculate Measures of Variability (Variance)
+# Variance is a measure of how much each feature deviates from the mean. It's computed using the var() method.
+# First, we select only the numeric columns before calculating variance
+setosa_numeric = setosa.select_dtypes(include=[np.number])  # Select only numeric columns
+versicolor_numeric = versicolor.select_dtypes(include=[np.number])  # Select only numeric columns
+virginica_numeric = virginica.select_dtypes(include=[np.number])  # Select only numeric columns
+
+# Now calculate variance for each species using the numeric columns
+setosa_variability = setosa_numeric.var()
+versicolor_variability = versicolor_numeric.var()
+virginica_variability = virginica_numeric.var()
+
+# Print the variance (measure of variability) for each species
+print("\nVariance (Measures of Variability) for Iris-setosa:")
+print(setosa_variability)
+
+print("\nVariance (Measures of Variability) for Iris-versicolor:")
+print(versicolor_variability)
+
+print("\nVariance (Measures of Variability) for Iris-virginica:")
+print(virginica_variability)
+
+# 3. Calculate and display the correlation among the variables
+# We drop the 'species' column as it is categorical, and calculate the correlation matrix for the numeric variables.
+correlation_matrix = iris.drop('species', axis=1).corr()
+
+# Print the correlation matrix
+print("\nCorrelation matrix (between features):")
+print(correlation_matrix)
+
+# 4. Visualize the correlation matrix using a heatmap
+# This helps to understand the relationships between the numeric features.
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5, fmt=".2f")
+plt.title('Correlation Heatmap for Iris Dataset Features')
+plt.show()
+
+# 5. Additional Visualization: Pairplot of all features colored by species
+# This gives an insight into the relationships between different features and how the species are distributed.
+sns.pairplot(iris, hue='species')
+plt.suptitle('Pairplot of Iris Dataset', y=1.02)
+plt.show()
+
+# 6. Boxplots to visualize the distribution of features for each species
+# Boxplots are great for visualizing the spread and outliers of the data for each species.
+plt.figure(figsize=(12, 6))
+
+# Sepal Length Boxplot
+plt.subplot(1, 2, 1)
+sns.boxplot(x='species', y='sepal_length', data=iris)
+plt.title('Sepal Length Distribution by Species')
+
+# Petal Length Boxplot
+plt.subplot(1, 2, 2)
+sns.boxplot(x='species', y='petal_length', data=iris)
+plt.title('Petal Length Distribution by Species')
+
+plt.tight_layout()
+plt.show()
